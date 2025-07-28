@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Calculator, HelpCircle, TrendingUp, TrendingDown, Minus, RefreshCw } from 'lucide-react';
+import { Calculator, HelpCircle, RefreshCw } from 'lucide-react';
 
 const InfoTooltip = ({ text }) => (
   <span className="group relative inline-block">
@@ -42,11 +42,11 @@ export default function App() {
 
     const sem = sd * Math.sqrt(1 - r);
     const sdiff = Math.sqrt(2 * Math.pow(sem, 2));
-    const rci = (x2 - x1) / sdiff;
-    const rawDiff = x2 - x1;
-    const threshold = 1.96 * sdiff;
+    const rciThreshold = 1.96 * sdiff;
+    const change = Math.abs(x2 - x1);
+    const significant = change > rciThreshold;
 
-    setResults({ sem, sdiff, rci, rawDiff, threshold });
+    setResults({ sem, sdiff, rciThreshold, change, x1, x2, significant });
   };
 
   const handleSubmit = (e) => {
@@ -66,72 +66,50 @@ export default function App() {
   const ResultsDisplay = useMemo(() => {
     if (!results) return null;
 
-    let interpretation = '';
-    let bgColor = 'bg-gray-700/80';
-    let textColor = 'text-gray-200';
-    let Icon = Minus;
-
-    if (results.rci < -1.96) {
-      interpretation = 'The improvement is statistically reliable.';
-      bgColor = 'bg-green-800/80';
-      textColor = 'text-green-200';
-      Icon = TrendingDown;
-    } else if (results.rci > 1.96) {
-      interpretation = 'The decline is statistically reliable.';
-      bgColor = 'bg-red-800/80';
-      textColor = 'text-red-200';
-      Icon = TrendingUp;
-    } else {
-      interpretation = 'The change is not statistically reliable.';
-    }
-
-    const insight = Math.abs(results.rawDiff) > results.threshold
-      ? `The observed change of ${results.rawDiff.toFixed(2)} exceeds the threshold (${results.threshold.toFixed(2)}), suggesting a statistically significant change.`
-      : `The observed change of ${results.rawDiff.toFixed(2)} does not exceed the threshold (${results.threshold.toFixed(2)}), suggesting the change may not be statistically significant.`;
-
     return (
       <div className="mt-8 p-6 bg-gray-800 rounded-2xl shadow-inner">
-        <h3 className="text-2xl font-bold text-center text-teal-300 mb-6">Calculation Results</h3>
+        <h3 className="text-2xl font-bold text-center text-teal-300 mb-6">RCI Evaluation Steps</h3>
 
-        <div className="text-center mb-6">
-          <p className="text-lg text-gray-400">Reliable Change Index (RCI)</p>
-          <p className="text-5xl font-bold text-white my-2">{results.rci.toFixed(2)}</p>
+        <div className="mb-6">
+          <h4 className="text-xl font-semibold text-white mb-2">Step 1: Standard Deviation</h4>
+          <p className="text-gray-300">SD = <span className="font-bold text-white">{parseFloat(results.sdiff / Math.sqrt(2 * (1 - parseFloat(reliability))) || 0).toFixed(2)}</span></p>
         </div>
 
-        <div className={`p-4 rounded-lg flex items-center gap-4 ${bgColor}`}>
-          <div className="flex-shrink-0">
-            <Icon className={`w-8 h-8 ${textColor}`} />
-          </div>
-          <div>
-            <p className={`font-semibold ${textColor}`}>{interpretation}</p>
-            <p className="text-xs text-gray-400 mt-1">(Based on a 95% confidence level: |RCI| > 1.96)</p>
-          </div>
+        <div className="mb-6">
+          <h4 className="text-xl font-semibold text-white mb-2">Step 2: Reliability Index</h4>
+          <p className="text-gray-300">r (or α) = <span className="font-bold text-white">{reliability}</span></p>
         </div>
 
-        <div className="mt-4 p-4 rounded-md bg-gray-700/60 text-sm text-white">
-          <strong>Insight:</strong> {insight}
+        <div className="mb-6">
+          <h4 className="text-xl font-semibold text-white mb-2">Step 3: RCI Threshold</h4>
+          <p className="text-gray-300">RCI Threshold = <span className="font-bold text-white">{results.rciThreshold.toFixed(2)}</span></p>
+          <p className="text-xs text-gray-400 mt-1">Computed as: 1.96 × √(2 × (SD × √(1 − r))²)</p>
         </div>
 
-        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4 text-center">
-          <div className="bg-gray-700/50 p-3 rounded-lg">
-            <p className="text-sm text-gray-400">Standard Error of Measurement (SEM)</p>
-            <p className="text-xl font-semibold text-white">{results.sem.toFixed(3)}</p>
-          </div>
-          <div className="bg-gray-700/50 p-3 rounded-lg">
-            <p className="text-sm text-gray-400">Standard Error of Difference (Sdiff)</p>
-            <p className="text-xl font-semibold text-white">{results.sdiff.toFixed(3)}</p>
-          </div>
+        <div className="mb-6">
+          <h4 className="text-xl font-semibold text-white mb-2">Step 4: Change Score</h4>
+          <p className="text-gray-300">Pre-Test Score = {results.x1}</p>
+          <p className="text-gray-300">Post-Test Score = {results.x2}</p>
+          <p className="text-gray-300">Change = |{results.x2} - {results.x1}| = <span className="font-bold text-white">{results.change}</span></p>
+        </div>
+
+        <div className={`p-4 rounded-lg mt-4 ${results.significant ? 'bg-green-700/70' : 'bg-gray-600/70'}`}>
+          <h4 className="text-xl font-semibold text-white mb-2">Step 5: Interpretation</h4>
+          <p className="text-white">
+            {results.change} {results.significant ? '>' : '≤'} {results.rciThreshold.toFixed(2)} →
+            <span className="font-bold ml-2">{results.significant ? 'Significant change observed' : 'No significant change'}</span>
+          </p>
         </div>
       </div>
     );
-  }, [results]);
+  }, [results, reliability]);
 
   return (
     <div className="bg-gray-900 text-white min-h-screen flex items-center justify-center p-4">
       <div className="w-full max-w-2xl mx-auto">
         <header className="text-center mb-8">
           <h1 className="text-4xl md:text-5xl font-bold text-teal-300">Reliable Change Index (RCI)</h1>
-          <p className="text-lg text-gray-400 mt-2">Evaluate the significance of score changes.</p>
+          <p className="text-lg text-gray-400 mt-2">Evaluate the significance of score changes based on NCSS steps.</p>
         </header>
 
         <main className="bg-gray-800/50 border border-gray-700 p-6 md:p-8 rounded-2xl shadow-2xl">
@@ -141,25 +119,25 @@ export default function App() {
                 <label htmlFor="preScore" className="block text-sm font-medium text-gray-300 mb-2">
                   Pre-Test Score (X1)<InfoTooltip text="Score before the intervention." />
                 </label>
-                <input type="number" step="any" id="preScore" value={preScore} onChange={(e) => setPreScore(e.target.value)} className="w-full bg-gray-900 border-2 border-gray-600 rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:ring-2 focus:ring-teal-400" placeholder="e.g., 25" />
+                <input type="number" step="any" id="preScore" value={preScore} onChange={(e) => setPreScore(e.target.value)} className="w-full bg-gray-900 border-2 border-gray-600 rounded-lg px-4 py-2 text-white" placeholder="e.g., 34" />
               </div>
               <div>
                 <label htmlFor="postScore" className="block text-sm font-medium text-gray-300 mb-2">
                   Post-Test Score (X2)<InfoTooltip text="Score after the intervention." />
                 </label>
-                <input type="number" step="any" id="postScore" value={postScore} onChange={(e) => setPostScore(e.target.value)} className="w-full bg-gray-900 border-2 border-gray-600 rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:ring-2 focus:ring-teal-400" placeholder="e.g., 18" />
+                <input type="number" step="any" id="postScore" value={postScore} onChange={(e) => setPostScore(e.target.value)} className="w-full bg-gray-900 border-2 border-gray-600 rounded-lg px-4 py-2 text-white" placeholder="e.g., 26" />
               </div>
               <div>
                 <label htmlFor="stdDev" className="block text-sm font-medium text-gray-300 mb-2">
                   Standard Deviation (SD)<InfoTooltip text="Standard deviation of the test." />
                 </label>
-                <input type="number" step="any" id="stdDev" value={stdDev} onChange={(e) => setStdDev(e.target.value)} className="w-full bg-gray-900 border-2 border-gray-600 rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:ring-2 focus:ring-teal-400" placeholder="e.g., 8.5" />
+                <input type="number" step="any" id="stdDev" value={stdDev} onChange={(e) => setStdDev(e.target.value)} className="w-full bg-gray-900 border-2 border-gray-600 rounded-lg px-4 py-2 text-white" placeholder="e.g., 2.07" />
               </div>
               <div>
                 <label htmlFor="reliability" className="block text-sm font-medium text-gray-300 mb-2">
                   Reliability Coefficient (r)<InfoTooltip text="Test-retest reliability (0 to 1)." />
                 </label>
-                <input type="number" step="any" id="reliability" value={reliability} onChange={(e) => setReliability(e.target.value)} className="w-full bg-gray-900 border-2 border-gray-600 rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:ring-2 focus:ring-teal-400" placeholder="e.g., 0.88" />
+                <input type="number" step="any" id="reliability" value={reliability} onChange={(e) => setReliability(e.target.value)} className="w-full bg-gray-900 border-2 border-gray-600 rounded-lg px-4 py-2 text-white" placeholder="e.g., 0.79" />
               </div>
             </div>
 
@@ -167,7 +145,7 @@ export default function App() {
 
             <div className="mt-8 flex flex-col sm:flex-row justify-center items-center gap-4">
               <button type="submit" className="w-full sm:w-auto bg-teal-600 hover:bg-teal-500 text-white font-bold py-3 px-8 rounded-lg flex items-center justify-center gap-2">
-                <Calculator className="w-5 h-5" /><span>Calculate RCI</span>
+                <Calculator className="w-5 h-5" /><span>Calculate</span>
               </button>
               <button type="reset" className="w-full sm:w-auto bg-gray-600 hover:bg-gray-500 text-white font-bold py-3 px-8 rounded-lg flex items-center justify-center gap-2">
                 <RefreshCw className="w-5 h-5" /><span>Reset</span>
