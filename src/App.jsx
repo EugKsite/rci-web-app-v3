@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Calculator, HelpCircle, RefreshCw } from 'lucide-react';
+import { Calculator, HelpCircle, TrendingUp, TrendingDown, Minus, RefreshCw } from 'lucide-react';
 
 const InfoTooltip = ({ text }) => (
   <span className="group relative inline-block">
@@ -43,9 +43,10 @@ export default function App() {
     const sem = sd * Math.sqrt(1 - r);
     const sdiff = Math.sqrt(2 * Math.pow(sem, 2));
     const rci = (x2 - x1) / sdiff;
-    const changeScore = Math.abs(x2 - x1);
+    const rawChange = Math.abs(x2 - x1);
+    const rciThreshold = 1.96 * Math.sqrt(2 * Math.pow(sd * Math.sqrt(1 - r), 2));
 
-    setResults({ sem, sdiff, rci, changeScore, x1, x2, sd, r });
+    setResults({ sem, sdiff, rci, rawChange, rciThreshold, pre: x1, post: x2 });
   };
 
   const handleSubmit = (e) => {
@@ -65,39 +66,22 @@ export default function App() {
   const ResultsDisplay = useMemo(() => {
     if (!results) return null;
 
-    const threshold = 1.96 * Math.sqrt(2 * Math.pow(results.sem, 2));
-    const significant = results.changeScore > threshold;
+    const { sem, sdiff, rci, rawChange, rciThreshold, pre, post } = results;
+    const interpretation = rawChange > rciThreshold
+      ? 'Significant change observed.'
+      : 'No significant change observed.';
 
     return (
       <div className="mt-8 p-6 bg-gray-800 rounded-2xl shadow-inner">
         <h3 className="text-2xl font-bold text-center text-teal-300 mb-6">RCI Evaluation Steps</h3>
 
-        <div className="space-y-4 text-white text-sm">
-          <div>
-            <strong>Step 1: Standard Deviation</strong><br />
-            SD = {results.sd.toFixed(2)}
-          </div>
-          <div>
-            <strong>Step 2: Reliability Index</strong><br />
-            r (or α) = {results.r.toFixed(2)}
-          </div>
-          <div>
-            <strong>Step 3: RCI Threshold</strong><br />
-            RCI = {results.rci.toFixed(2)}
-            <br />
-            Computed as: (X2 - X1) / √(2 × (SD × √(1 − r))²)
-          </div>
-          <div>
-            <strong>Step 4: Change Score</strong><br />
-            Pre-Test Score = {results.x1.toFixed(2)}<br />
-            Post-Test Score = {results.x2.toFixed(2)}<br />
-            Change = |{results.x2.toFixed(2)} - {results.x1.toFixed(2)}| = {results.changeScore.toFixed(2)}
-          </div>
-          <div>
-            <strong>Step 5: Interpretation</strong><br />
-            {results.changeScore.toFixed(2)} {significant ? '>' : '<='} {threshold.toFixed(2)} → {significant ? 'Significant change observed' : 'No statistically significant change observed'}
-          </div>
-        </div>
+        <p className="text-gray-300 mb-2"><strong>Step 1:</strong> Standard Deviation = {stdDev}</p>
+        <p className="text-gray-300 mb-2"><strong>Step 2:</strong> Reliability Index (r) = {reliability}</p>
+        <p className="text-gray-300 mb-2"><strong>Step 3:</strong> RCI Threshold = {rciThreshold.toFixed(2)}</p>
+        <p className="text-gray-300 mb-2 text-sm">Computed as: 1.96 × √(2 × (SD × √(1 − r))²)</p>
+        <p className="text-gray-300 mb-2"><strong>Step 4:</strong> Change Score = |{post} - {pre}| = {rawChange}</p>
+        <p className="text-gray-300 mb-4"><strong>Step 5:</strong> Interpretation → {rawChange} {rawChange > rciThreshold ? '>' : '≤'} {rciThreshold.toFixed(2)} → <strong>{interpretation}</strong></p>
+        <p className="text-gray-500 text-sm">Actual RCI value: {rci.toFixed(2)}</p>
       </div>
     );
   }, [results]);
