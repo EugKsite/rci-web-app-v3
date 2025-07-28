@@ -2,9 +2,9 @@ import React, { useState, useMemo } from 'react';
 import { Calculator, HelpCircle, TrendingUp, TrendingDown, Minus, RefreshCw } from 'lucide-react';
 
 const InfoTooltip = ({ text }) => (
-  <span className="group relative inline-block">
-    <HelpCircle className="w-4 h-4 text-gray-400 cursor-pointer ml-1" />
-    <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-2 bg-gray-800 text-white text-sm rounded-md shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10 pointer-events-none">
+  <span className="relative group inline-block ml-1">
+    <HelpCircle className="w-4 h-4 text-gray-400 cursor-pointer group-hover:text-teal-300" />
+    <span className="absolute z-10 bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-64 p-2 bg-gray-800 text-white text-sm rounded-md shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300">
       {text}
     </span>
   </span>
