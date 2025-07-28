@@ -85,15 +85,19 @@ export default function App() {
       <div className="mt-8 p-6 bg-gray-800 rounded-2xl shadow-inner">
         <h3 className="text-2xl font-bold text-center text-teal-300 mb-6">RCI Evaluation Steps</h3>
 
-        <div className="space-y-3 text-gray-200">
+        <div className="space-y-6 text-gray-200">
           <p><strong>Step 1:</strong> Standard Deviation (SD) = {stdDev}</p>
+
           <p><strong>Step 2:</strong> Reliability Coefficient (r) = {reliability}</p>
+
           <p><strong>Step 3:</strong><br />
             RCI Threshold = {rciThreshold.toFixed(2)}<br />
             RCI Actual = {rciActual.toFixed(2)}<br />
             Computed as: 1.96 × √(2 × (SD × √(1 − r))²)
           </p>
+
           <p><strong>Step 4:</strong> Pre = {x1}, Post = {x2}, Change = {changeScore.toFixed(2)}</p>
+
           <p><strong>Step 5:</strong> Interpretation:<br />
             RCI = {changeScore.toFixed(2)} {'>'} {rciThreshold.toFixed(2)}<br />
             Change {'>'} RCI Actual<br />
