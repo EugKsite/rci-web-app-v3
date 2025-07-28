@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Calculator, HelpCircle, TrendingUp, TrendingDown, Minus, RefreshCw } from 'lucide-react';
+import { Calculator, HelpCircle, RefreshCw } from 'lucide-react';
 
 const InfoTooltip = ({ text }) => (
   <span className="group relative inline-block">
@@ -43,10 +43,9 @@ export default function App() {
     const sem = sd * Math.sqrt(1 - r);
     const sdiff = Math.sqrt(2 * Math.pow(sem, 2));
     const rci = (x2 - x1) / sdiff;
-    const rciThreshold = 1.96 * sdiff;
-    const rawChange = x2 - x1;
+    const changeScore = Math.abs(x2 - x1);
 
-    setResults({ sem, sdiff, rci, rciThreshold, rawChange });
+    setResults({ sem, sdiff, rci, changeScore, x1, x2, sd, r });
   };
 
   const handleSubmit = (e) => {
@@ -66,57 +65,37 @@ export default function App() {
   const ResultsDisplay = useMemo(() => {
     if (!results) return null;
 
-    let interpretation = '';
-    let bgColor = 'bg-gray-700/80';
-    let textColor = 'text-gray-200';
-    let Icon = Minus;
-
-    if (Math.abs(results.rawChange) > results.rciThreshold) {
-      interpretation = 'Significant change was observed.';
-      if (results.rawChange < 0) {
-        bgColor = 'bg-green-800/80';
-        textColor = 'text-green-200';
-        Icon = TrendingDown;
-      } else {
-        bgColor = 'bg-red-800/80';
-        textColor = 'text-red-200';
-        Icon = TrendingUp;
-      }
-    } else {
-      interpretation = 'The change is not statistically reliable.';
-    }
+    const threshold = 1.96 * Math.sqrt(2 * Math.pow(results.sem, 2));
+    const significant = results.changeScore > threshold;
 
     return (
       <div className="mt-8 p-6 bg-gray-800 rounded-2xl shadow-inner">
-        <h3 className="text-2xl font-bold text-center text-teal-300 mb-6">Calculation Results</h3>
+        <h3 className="text-2xl font-bold text-center text-teal-300 mb-6">RCI Evaluation Steps</h3>
 
-        <div className="text-center mb-6">
-          <p className="text-lg text-gray-400">Step 1 & 2: SEM and Sdiff</p>
-          <p className="text-white">SEM: {results.sem.toFixed(3)}, Sdiff: {results.sdiff.toFixed(3)}</p>
-        </div>
-
-        <div className="text-center mb-6">
-          <p className="text-lg text-gray-400">Step 3: RCI Threshold</p>
-          <p className="text-3xl font-semibold text-white">{results.rciThreshold.toFixed(2)}</p>
-        </div>
-
-        <div className="text-center mb-6">
-          <p className="text-lg text-gray-400">Step 4: Change in Score</p>
-          <p className="text-xl text-white">{preScore} → {postScore} = Change of {results.rawChange.toFixed(2)}</p>
-        </div>
-
-        <div className="text-center mb-6">
-          <p className="text-lg text-gray-400">Step 5: RCI Value</p>
-          <p className="text-5xl font-bold text-white my-2">{results.rci.toFixed(2)}</p>
-        </div>
-
-        <div className={`p-4 rounded-lg flex items-center gap-4 ${bgColor}`}>
-          <div className="flex-shrink-0">
-            <Icon className={`w-8 h-8 ${textColor}`} />
+        <div className="space-y-4 text-white text-sm">
+          <div>
+            <strong>Step 1: Standard Deviation</strong><br />
+            SD = {results.sd.toFixed(2)}
           </div>
           <div>
-            <p className={`font-semibold ${textColor}`}>{interpretation}</p>
-            <p className="text-xs text-gray-400 mt-1">(Significant if raw change > RCI threshold)</p>
+            <strong>Step 2: Reliability Index</strong><br />
+            r (or α) = {results.r.toFixed(2)}
+          </div>
+          <div>
+            <strong>Step 3: RCI Threshold</strong><br />
+            RCI = {results.rci.toFixed(2)}
+            <br />
+            Computed as: (X2 - X1) / √(2 × (SD × √(1 − r))²)
+          </div>
+          <div>
+            <strong>Step 4: Change Score</strong><br />
+            Pre-Test Score = {results.x1.toFixed(2)}<br />
+            Post-Test Score = {results.x2.toFixed(2)}<br />
+            Change = |{results.x2.toFixed(2)} - {results.x1.toFixed(2)}| = {results.changeScore.toFixed(2)}
+          </div>
+          <div>
+            <strong>Step 5: Interpretation</strong><br />
+            {results.changeScore.toFixed(2)} {significant ? '>' : '<='} {threshold.toFixed(2)} → {significant ? 'Significant change observed' : 'No statistically significant change observed'}
           </div>
         </div>
       </div>
